@@ -19,12 +19,13 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -49,13 +50,24 @@
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
+void MX_FREERTOS_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+const uint8_t __USED __attribute__((section(".flash2_sect1"))) var_in_flash2_sect1[8] = "123star";
+const uint8_t __USED __attribute__((section(".flash2_sect2"))) var_in_flash2_sect2[8] = "123star";
+const uint8_t __USED __attribute__((section(".flash2_sect3"))) var_in_flash2_sect3[8] = "123star";
+const uint8_t __USED __attribute__((section(".flash2_sect4"))) var_in_flash2_sect4[8] = "123star";
 
+__IO uint8_t __USED __attribute__((section(".ram2_sect1"))) var_in_ram2_sect1[8] = "ram_var";
+__IO uint8_t __USED __attribute__((section(".ram2_sect2"))) var_in_ram2_sect2[8] = "ram_var";
+__IO uint8_t __USED __attribute__((section(".ram2_sect3"))) var_in_ram2_sect3[8] = "ram_var";
+__IO uint8_t __USED __attribute__((section(".ram2_sect4"))) var_in_ram2_sect4[8] = "ram_var";
+
+volatile uint8_t cache[1024];
 /* USER CODE END 0 */
 
 /**
@@ -71,15 +83,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-
-  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
-  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
-
-  /* System interrupt init*/
-
-  /** Disable the internal Pull-Up in Dead Battery pins of UCPD peripheral
-  */
-  LL_SYSCFG_DisableDBATT(LL_SYSCFG_UCPD1_STROBE | LL_SYSCFG_UCPD2_STROBE);
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -96,9 +100,26 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+  memcpy((uint8_t*)&cache[0], (uint8_t*)&var_in_flash2_sect1[0], 8);
+  memcpy((uint8_t*)&cache[0], (uint8_t*)&var_in_flash2_sect2[0], 8);
+  memcpy((uint8_t*)&cache[0], (uint8_t*)&var_in_flash2_sect3[0], 8);
+  memcpy((uint8_t*)&cache[0], (uint8_t*)&var_in_flash2_sect4[0], 8);
 
+  memcpy((uint8_t*)&var_in_ram2_sect1[0], (uint8_t*)&var_in_flash2_sect1[0], 8);
+  memcpy((uint8_t*)&var_in_ram2_sect2[0], (uint8_t*)&var_in_flash2_sect2[0], 8);
+  memcpy((uint8_t*)&var_in_ram2_sect3[0], (uint8_t*)&var_in_flash2_sect3[0], 8);
+  memcpy((uint8_t*)&var_in_ram2_sect4[0], (uint8_t*)&var_in_flash2_sect4[0], 8);
+
+  memset((uint8_t*)&cache[0], 0xA5, 128);
+  memcpy((uint8_t*)&var_in_ram2_sect4[0], (uint8_t*)&cache[0], 8);
   /* USER CODE END 2 */
 
+  /* Call init function for freertos objects (in freertos.c) */
+  MX_FREERTOS_Init();
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -133,7 +154,12 @@ void SystemClock_Config(void)
 
   /* Set APB1 prescaler*/
   LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
-  LL_Init1msTick(16000000);
+
+   /* Update the time base */
+  if (HAL_InitTick (TICK_INT_PRIORITY) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* Update CMSIS variable (which can be updated also through SystemCoreClockUpdate function) */
   LL_SetSystemCoreClock(16000000);
   LL_RCC_SetUSARTClockSource(LL_RCC_USART2_CLKSOURCE_PCLK1);
@@ -142,6 +168,27 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+ /**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM17 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM17) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
