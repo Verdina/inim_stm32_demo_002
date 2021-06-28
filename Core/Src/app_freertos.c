@@ -164,8 +164,8 @@ void StartDefaultTask(void const * argument)
 		osDelay(1000);
 		LL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
 		for (i=0; i<sizeof(phrase)-1; i++) {
-			//    	while (!LL_USART_IsActiveFlag_TXE(USART1));
-			//    	LL_USART_TransmitData8(USART1, phrase[i]);
+			//    	while (!LL_USART_IsActiveFlag_TXE(USART2));
+			//    	LL_USART_TransmitData8(USART2, phrase[i]);
 		}
 	}
   /* USER CODE END StartDefaultTask */
@@ -280,7 +280,7 @@ void StartConsumer(void const * argument)
 	for(;;)
 	{
 		osDelay(10);
-		LL_USART_TransmitData8(USART1, shared_mem);
+		LL_USART_TransmitData8(USART2, shared_mem);
 	}
 #endif
 
@@ -289,7 +289,7 @@ void StartConsumer(void const * argument)
 	{
 		osDelay(10);
 		if (osOK == osMutexWait(sharedMemMutexHandle, portMAX_DELAY)) {
-			LL_USART_TransmitData8(USART1, shared_mem);
+			LL_USART_TransmitData8(USART2, shared_mem);
 			osMutexRelease(sharedMemMutexHandle);
 		}
 	}
@@ -301,7 +301,7 @@ void StartConsumer(void const * argument)
 		osDelay(1);
 		if (shared_mem) {
 			if (osOK == osMutexWait(sharedMemMutexHandle, portMAX_DELAY)) {
-				LL_USART_TransmitData8(USART1, shared_mem);
+				LL_USART_TransmitData8(USART2, shared_mem);
 				shared_mem = 0x00;
 				osMutexRelease(sharedMemMutexHandle);
 			}
@@ -317,7 +317,7 @@ void StartConsumer(void const * argument)
 		if (osOK == osMutexWait(sharedMemMutexHandle, portMAX_DELAY)) {
 			ev = osMessageGet(charQueueHandle, 0);
 			if (osEventMessage == ev.status) {
-				LL_USART_TransmitData8(USART1, ev.value.v);
+				LL_USART_TransmitData8(USART2, ev.value.v);
 			}
 			osMutexRelease(sharedMemMutexHandle);
 		}
